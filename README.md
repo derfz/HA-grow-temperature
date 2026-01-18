@@ -1,9 +1,10 @@
 # HA-grow-temperature
 
 ## This is a grow room temperature control blueprint for HA.
-<p>What is unique about this script is that this script monitors the light switch and sets the temperature of the grow room accordingly.</p>
-<p>Higher temp during the day and lower temp during the night.</p>
-<p>Setpoint/hysteresis is the difference between min-max temps.</p>
+What is unique about this script is that this script monitors the light switch and sets the temperature of the grow room accordingly.  
+Higher temp during the day and lower temp during the night.   
+Setpoint/hysteresis is the difference between min-max temps.   
+
 
 <P>It requires these helpers in order work function.</P>
 
