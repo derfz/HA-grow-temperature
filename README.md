@@ -5,12 +5,12 @@ You can set these to wherever you like.
 Setpoint/hysteresis is the difference between min-max temps.
 
 It requires these helpers in order work function.
-input_number.grow_absolute_max_temp
-input_number.grow_absolute_minimum_temp
-input_number.grow_day_temperature_high
-input_number.grow_day_temperature_low
-input_number.grow_night_temperature_high
-input_number.grow_night_temperature_low
+- input_number.grow_absolute_max_temp
+- input_number.grow_absolute_minimum_temp
+- input_number.grow_day_temperature_high
+- input_number.grow_day_temperature_low
+- input_number.grow_night_temperature_high
+- input_number.grow_night_temperature_low
 
 It requires these entities as switches
 your-light-switch
