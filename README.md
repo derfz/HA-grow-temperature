@@ -4,6 +4,7 @@
 What is unique about this script is that this script monitors the light switch and sets the temperature of the grow room accordingly.  
 Higher temp during the day and lower temp during the night.   
 Setpoint/hysteresis is the difference between min-max temps.   
+This script also has sanity checking so that if you set the minimum temp above the max temp it will shut down the heater.   
 
 
 ## helpers
@@ -20,6 +21,3 @@ Setpoint/hysteresis is the difference between min-max temps.
 - your-light-switch
 - your-heater-switch
 - your-temperature-sensor
-
-<p>This script also has sanity checking so that if you set the minimum temp above the max temp it will shut down the heater.</p>
-This document is still being written
