@@ -17,4 +17,6 @@ It requires these entities as switches
 - your-heater-switch
 - your-temperature-sensor
 
+This script also has sanity checking so that if you set the minimum temp above the max temp it will shut down the heater.
+
 This document is still being written
