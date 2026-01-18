@@ -13,8 +13,8 @@ It requires these helpers in order work function.
 - input_number.grow_night_temperature_low
 
 It requires these entities as switches
-your-light-switch
-your-heater-switch
-your-temperature-sensor
+- your-light-switch
+- your-heater-switch
+- your-temperature-sensor
 
 This document is still being written
