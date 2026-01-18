@@ -1,5 +1,5 @@
 This is a grow room temperature control blueprint for HA
-What is unique about this script is that is sets the temperature of the grow room dependent on light state.
+What is unique about this script is that this script monitors the light switch and sets the temperature of the grow room accordingly.
 Higher temp during the day and lower temp during the night.
 You can set these to wherever you like.
 Setpoint/hysteresis is the difference between min-max temps.
