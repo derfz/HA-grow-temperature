@@ -6,7 +6,7 @@ Higher temp during the day and lower temp during the night.
 Setpoint/hysteresis is the difference between min-max temps.   
 
 
-<P>It requires these helpers in order work function.</P>
+## helpers
 
 - input_number.grow_absolute_max_temp
 - input_number.grow_absolute_minimum_temp
@@ -15,7 +15,7 @@ Setpoint/hysteresis is the difference between min-max temps.
 - input_number.grow_night_temperature_high
 - input_number.grow_night_temperature_low
 
-<p>It requires these entities as switches</p>
+## switch/sensor entities
 
 - your-light-switch
 - your-heater-switch
