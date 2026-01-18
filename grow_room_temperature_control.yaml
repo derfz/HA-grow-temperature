@@ -1,121 +1,204 @@
-  - sensor:
-      # ───────────── Grow Week ─────────────
-      - name: "Grow Week"
-        icon: mdi:calendar-week
-        state: >
-          {% set start = states('input_datetime.grow_start_date') %}
-          {% if start not in ['unknown','unavailable',''] %}
-            {% set start_date = strptime(start.split(' ')[0], '%Y-%m-%d') %}
-            {% set days = (now().date() - start_date.date()).days %}
-            {{ (days // 7) + 1 if days >= 0 else 0 }}
-          {% else %}
-            unknown
-          {% endif %}
+blueprint:
+  name: Grow Room Heater Control
+  description: >
+    Controls a grow room temperature based on lights ON/OFF,
+    sensor validation, and absolute safety cutoffs.
+  domain: automation
 
-      # ───────────── Grow Room VPD ─────────────
-      - name: "Grow Room VPD"
-        unique_id: grow_room_vpd
-        icon: mdi:water-percent
-        unit_of_measurement: "kPa"
-        state_class: measurement
-        device_class: pressure
-        state: >
-          {% set t = states('sensor.growroomclimate_sht3x_temperature') | float(none) %}
-          {% set rh = states('sensor.growroomclimate_sht3x_humidity') | float(none) %}
-          {% if t is not none and rh is not none %}
-            {% set svp = 0.6108 * (2.71828 ** ((17.27 * t) / (t + 237.3))) %}
-            {{ (svp * (1 - rh / 100)) | round(2) }}
-          {% else %}
-            unknown
-          {% endif %}
+  input:
+    temperature_sensor:
+      name: Temperature Sensor
+      selector:
+        entity:
+          domain: sensor
 
-      # ───────────── Grow Lights Countdown ─────────────
-      - name: "Grow Lights – Countdown"
-        icon: mdi:timer-outline
-        state: >
-          {% set start_date = states('input_datetime.grow_start_date') %}
-          {% set light_state = states('switch.relayboard_lights') %}
-          {% if start_date in ['unknown','unavailable',''] or light_state in ['unknown','unavailable'] %}
-            unavailable
-          {% else %}
-            {% set now_ts = as_timestamp(now()) %}
-            {# Use fixed local noon today #}
-            {% set noon = now().replace(hour=12, minute=0, second=0, microsecond=0) %}
-            {% set noon_ts = as_timestamp(noon) %}
-            {% set grow_days = (now().date() - strptime(start_date.split(' ')[0], '%Y-%m-%d').date()).days %}
-            {% set grow_week = (grow_days // 7) + 1 if grow_days >= 0 else 0 %}
-            {% set light_hours = 18 if grow_week < 5 else 12 %}
-            {% set half_window = (light_hours / 2) * 3600 %}
-            {% set lights_on_ts = noon_ts - half_window %}
-            {% set lights_off_ts = noon_ts + half_window %}
+    heater_switch:
+      name: Heater Switch
+      selector:
+        entity:
+          domain: switch
 
-            {% if light_state == 'on' %}
-              {% set remaining = max(0, lights_off_ts - now_ts) %}
-            {% else %}
-              {% if now_ts < lights_on_ts %}
-                {% set remaining = lights_on_ts - now_ts %}
-              {% else %}
-                {% set remaining = (lights_on_ts + 24*3600) - now_ts %}
-              {% endif %}
-            {% endif %}
+    lights_switch:
+      name: Lights Switch
+      selector:
+        entity:
+          domain: switch
 
-            {% set hours = (remaining // 3600) | int %}
-            {% set minutes = ((remaining % 3600) // 60) | int %}
-            {{ "%02d:%02d" | format(hours, minutes) }}
-          {% endif %}
+    day_temp_low:
+      name: Day Temperature Low
+      selector:
+        entity:
+          domain: input_number
 
-      # ───────────── Next Light ON ─────────────
-      - name: "Next Light ON"
-        unique_id: grow_lights_on
-        icon: mdi:lightbulb-on-outline
-        device_class: timestamp
-        state: >
-            {% set start = states('input_datetime.grow_start_date') %}
-            {% if start in ['unknown','unavailable',''] %}
-                unavailable
-            {% else %}
-            {% set now_ts = as_timestamp(now()) %}
-            {% set prev_noon = state_attr('sun.sun','previous_noon') %}
-            {% set next_noon = state_attr('sun.sun','next_noon') %}
+    day_temp_high:
+      name: Day Temperature High
+      selector:
+        entity:
+          domain: input_number
 
-            {% if prev_noon is not none and next_noon is not none %}
-            {% set noon_ts = as_timestamp(prev_noon if now_ts < as_timestamp(next_noon) else next_noon) %}
-            {% else %}
-            {% set noon_ts = as_timestamp(today_at("12:00")) %}
-            {% endif %}
+    night_temp_low:
+      name: Night Temperature Low
+      selector:
+        entity:
+          domain: input_number
 
-            {% set days = (now().date() - strptime(start.split(' ')[0], '%Y-%m-%d').date()).days %}
-            {% set week = (days // 7) + 1 if days >= 0 else 0 %}
-            {% set hours = 18 if week < 5 else 12 %}
-            {% set on_ts = noon_ts - (hours / 2 * 3600) %}
+    night_temp_high:
+      name: Night Temperature High
+      selector:
+        entity:
+          domain: input_number
 
-            {{ (on_ts if now_ts < on_ts else on_ts + 86400) | timestamp_local }}
-            {% endif %}
+    absolute_max_temp:
+      name: Absolute Maximum Temperature
+      selector:
+        entity:
+          domain: input_number
 
-      # ───────────── Next Light OFF ─────────────
-      - name: "Next Light OFF"
-        unique_id: grow_lights_off
-        icon: mdi:lightbulb-off-outline
-        device_class: timestamp
-        state: >
-            {% set start = states('input_datetime.grow_start_date') %}
-            {% if start in ['unknown','unavailable',''] %}
-                unavailable
-            {% else %}
-            {% set now_ts = as_timestamp(now()) %}
-            {% set prev_noon = state_attr('sun.sun','previous_noon') %}
-            {% set next_noon = state_attr('sun.sun','next_noon') %}
+    absolute_min_temp:
+      name: Absolute Minimum Temperature
+      selector:
+        entity:
+          domain: input_number
 
-            {% if prev_noon is not none and next_noon is not none %}
-            {% set noon_ts = as_timestamp(prev_noon if now_ts < as_timestamp(next_noon) else next_noon) %}
-            {% else %}
-            {% set noon_ts = as_timestamp(today_at("12:00")) %}
-            {% endif %}
+mode: restart
 
-            {% set days = (now().date() - strptime(start.split(' ')[0], '%Y-%m-%d').date()).days %}
-            {% set week = (days // 7) + 1 if days >= 0 else 0 %}
-            {% set hours = 18 if week < 5 else 12 %}
-            {% set off_ts = noon_ts + (hours / 2 * 3600) %}
+trigger:
+  - platform: state
+    entity_id:
+      - !input temperature_sensor
+      - !input lights_switch
+      - !input day_temp_low
+      - !input day_temp_high
+      - !input night_temp_low
+      - !input night_temp_high
+      - !input absolute_max_temp
+      - !input absolute_min_temp
 
-            {{ (off_ts if now_ts < off_ts else off_ts + 86400) | timestamp_local }}
-            {% endif %}
+action:
+
+  # --- SENSOR INVALID FAILSAFE ---
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input temperature_sensor
+            state:
+              - "unknown"
+              - "unavailable"
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input heater_switch
+          - stop: "Temperature sensor invalid"
+
+  # --- ABSOLUTE MAX FAILSAFE ---
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input temperature_sensor
+            above: !input absolute_max_temp
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input heater_switch
+          - stop: "Absolute max temperature reached"
+
+  # --- ABSOLUTE MIN FAILSAFE ---
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input temperature_sensor
+            below: !input absolute_min_temp
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input heater_switch
+          - stop: "Absolute min temperature reached"
+
+  # --- CONFIGURATION SANITY CHECK ---
+  - choose:
+
+      # Day min >= Day max
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input day_temp_low
+            above: !input day_temp_high
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input heater_switch
+          - stop: "Invalid DAY temperature config (low >= high)"
+
+      # Night min >= Night max
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input night_temp_low
+            above: !input night_temp_high
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input heater_switch
+          - stop: "Invalid NIGHT temperature config (low >= high)"
+
+      # Absolute min >= Absolute max
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input absolute_min_temp
+            above: !input absolute_max_temp
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input heater_switch
+          - stop: "Invalid ABSOLUTE temperature config (min >= max)"
+
+  # --- NORMAL CONTROL ---
+  - choose:
+
+      # DAY MODE
+      - conditions:
+          - condition: state
+            entity_id: !input lights_switch
+            state: "on"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: numeric_state
+                    entity_id: !input temperature_sensor
+                    below: !input day_temp_low
+                sequence:
+                  - service: switch.turn_on
+                    target:
+                      entity_id: !input heater_switch
+
+              - conditions:
+                  - condition: numeric_state
+                    entity_id: !input temperature_sensor
+                    above: !input day_temp_high
+                sequence:
+                  - service: switch.turn_off
+                    target:
+                      entity_id: !input heater_switch
+
+      # NIGHT MODE
+      - conditions:
+          - condition: state
+            entity_id: !input lights_switch
+            state: "off"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: numeric_state
+                    entity_id: !input temperature_sensor
+                    below: !input night_temp_low
+                sequence:
+                  - service: switch.turn_on
+                    target:
+                      entity_id: !input heater_switch
+
+              - conditions:
+                  - condition: numeric_state
+                    entity_id: !input temperature_sensor
+                    above: !input night_temp_high
+                sequence:
+                  - service: switch.turn_off
+                    target:
+                      entity_id: !input heater_switch
